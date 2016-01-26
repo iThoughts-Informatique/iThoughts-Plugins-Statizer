@@ -12,6 +12,7 @@ class ithoughts_plugins_statizer_interface{
 	static protected $clientsideOverridable;
 	static protected $serversideOverridable;
 	static protected $handledAttributes;
+	static protected $minify = ".min";
 
 	public function getPluginOptions($defaultsOnly = false){
 		return self::$basePlugin->getOptions($defaultsOnly);
@@ -26,6 +27,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 	private $shortcodeDatas = array();
 
 	function __construct($plugin_base) {
+		if(defined(WP_DEBUG) && WP_DEBUG)
+			parent::$minify = "";
 		parent::$basePlugin		= &$this;
 		parent::$plugin_base	= $plugin_base;
 		parent::$base			= $plugin_base . '/class';
@@ -40,23 +43,30 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 
 
 		add_action( 'init',								array( &$this,	'register_scripts_and_styles')	);
-		add_action( 'ithoughts_plugin_statizer_cron',	array( &$this,	'refresh')						);
+		add_action( 'ithoughts_plugins_statizer_cron',	array( &$this,	'refresh')						);
 		add_action( 'wp_footer',						array( &$this,	'wp_enqueue_scripts')			);
+		add_action( 'wp_ajax_ithoughts_plugins_statizer-get_chart_ajax',			array(&$this, 'get_chart_ajax') );
+		add_action( 'wp_ajax_nopriv_ithoughts_plugins_statizer-get_chart_ajax',	array(&$this, 'get_chart_ajax') );
+		add_action( 'plugins_loaded',				array($this,	'localisation')							);
 	}
 	public function updateShortcode(){
-		echo "<pre>";
-		var_dump( _get_cron_array() );
-		echo "</pre>";
-		/*
-		do_action("ithoughts_plugin_statizer_cron", true);
-		do_action("ithoughts_plugin_statizer_cron", false);
-		*/
+		/**/
+		do_action("ithoughts_plugins_statizer_cron", true);
+		do_action("ithoughts_plugins_statizer_cron", false);
+		/**/
+	}
+	public function get_chart_ajax(){
+		if(isset($_POST) && $post = $_POST["data"]){
+			$plugins = $post["plugins"];
+			$details = $post["details"];
+			$chartId = $post["chartId"];
+			wp_send_json_success($this->crunch_datas($plugins, $details, $chartId));
+		}
+		wp_die();
 	}
 	public function pluginStats($attrs, $content = ""){
 		wp_enqueue_script("ithoughts_plugins_statizer-main");
-		echo "<pre>";
-		var_dump($attrs);
-		echo "</pre>";
+		wp_enqueue_style("ithoughts_plugins_statizer-main");
 		if(!isset($attrs["plugins"]) && !isset($attrs["plugin"])){
 			return;
 		}
@@ -68,9 +78,7 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 			foreach($pluginsNames as $index => $plugin){
 				$pluginsNames[$index] = trim($plugin);
 			}
-			foreach($pluginsNames as $pluginName){
-				$plugins[$pluginName] = $this->getInfos($pluginName);
-			}
+			$plugins = $pluginsNames;
 		}
 
 		$details = array();
@@ -91,30 +99,107 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 					$details[$str] = true;
 				}
 			}
-			$details = array_replace_recursive($details, array("name" => true));
-			echo "<pre>";
-			var_dump($details);
-			echo "</pre>";
-		}
-
-		// Filter plugins infos
-		foreach($plugins as $plugin => $pluginData){
-			$plugins[$plugin] = $this->filterPluginData($pluginData, $details);
-			echo "<pre>";
-			var_dump($plugins[$plugin]);
-			echo "</pre>";
+			$details = array_replace_recursive($details, array("name" => true, "creationDate" => true));
 		}
 
 		$hightchartsId = "plugins_data-".substr(str_shuffle("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"), 0, 15);
-		$this->shortcodeDatas[count($this->shortcodeDatas)] = array(
-			"plugins" => $plugins,
-			"chartId" => $hightchartsId
-		);
 
-		echo '<div id="'.$hightchartsId.'"></div>';
+		if(isset($attrs["ajax"]) && $attrs["ajax"] === "true"){
+			return "<div id=\"$hightchartsId\" data-title=\"{$attrs["title"]}\" data-ajaxed=\"true\" data-plugins=\"".urlencode(json_encode($plugins))."\" data-details=\"".urlencode(json_encode($details))."\"><div class=\"chart\"></div><div class=\"customLegend\"></div></div>";
+		}
+
+		$this->shortcodeDatas[count($this->shortcodeDatas)] = $this->crunch_datas($plugins, $details, $hightchartsId);
+
+		return "<div id=\"$hightchartsId\" data-title=\"{$attrs["title"]}\"><div class=\"chart\"></div><div class=\"customLegend\"></div></div>";
+	}
+	private function crunch_datas($plugins, $details, $chartId){
+		$plugins_infos = array();
+		foreach($plugins as $pluginName){
+			$plugins_infos[$pluginName] = $this->getInfos($pluginName);
+		}
+
+		// Filter plugins infos
+		foreach($plugins_infos as $plugin => $pluginData){
+			$plugins_infos[$plugin] = $this->filterPluginData($pluginData, $details);
+		}
+		$data = array(
+			"plugins" => $plugins_infos,
+			"chartId" => $chartId,
+			"colors" => array(
+				"axis" => array(
+					"#fcc",
+					"#cfc",
+				),
+				"series" => array(
+					array( // Red
+						"6A0500",
+						"AA0800",
+						"F60C00",
+						"B70900",
+						"900700"
+					),
+					array( // Green
+						"006A1B",
+						"00AA2B",
+						"00F63E",
+						"00B72E",
+						"009024"
+					),
+					array( // Cyan
+						"01686A",
+						"02A7AA",
+						"03F2F6",
+						"02B3B7",
+						"028E90"
+					),
+					array( // Blue
+						"00196A",
+						"0027AA",
+						"0039F6",
+						"002AB7",
+						"002190"
+					),
+					array( // Pink
+						"63006A",
+						"9F00AA",
+						"E600F6",
+						"AB00B7",
+						"870090"
+					)
+				)
+			),
+		);
+		return $data;
 	}
 	public function wp_enqueue_scripts(){
 		wp_localize_script("ithoughts_plugins_statizer-main", "ithoughts_plugins_statizer_plugins", $this->shortcodeDatas);
+		wp_localize_script("ithoughts_plugins_statizer-main", "ithoughts_plugins_statizer", array(
+			"ajax" => admin_url('admin-ajax.php'),
+			"lang" => array(
+				"dateformat" => array(
+					"full" => _x("%a, %b %e, %Y", "Full date", "ithoughts_plugins_statizer"),
+					"week" => _x("%e. %b", "Week date", "ithoughts_plugins_statizer")
+				),
+				"highcharts" => array(
+					"months" => array(__('January',"ithoughts_plugins_statizer"), __('February',"ithoughts_plugins_statizer"), __('March',"ithoughts_plugins_statizer"), __('April',"ithoughts_plugins_statizer"), __('May',"ithoughts_plugins_statizer"), __('June',"ithoughts_plugins_statizer"),  __('July',"ithoughts_plugins_statizer"), __('August',"ithoughts_plugins_statizer"), __('September',"ithoughts_plugins_statizer"), __('October',"ithoughts_plugins_statizer"), __('November',"ithoughts_plugins_statizer"), __('December',"ithoughts_plugins_statizer")),
+					"weekdays" => array(__('Sunday',"ithoughts_plugins_statizer"), __('Monday',"ithoughts_plugins_statizer"), __('Tuesday',"ithoughts_plugins_statizer"), __('Wednesday',"ithoughts_plugins_statizer"), __('Thursday',"ithoughts_plugins_statizer"), __('Friday',"ithoughts_plugins_statizer"), __('Saturday',"ithoughts_plugins_statizer"))
+				),
+				"labels" => array(
+					"active" => __("Active","ithoughts_plugins_statizer"),
+					"downloads" => __("Downloads","ithoughts_plugins_statizer"),
+					"events" => __("Events","ithoughts_plugins_statizer"),
+					"yAxisDownloads" => __("Downloads per day","ithoughts_plugins_statizer"),
+					"yAxisActive" => __("Active installs","ithoughts_plugins_statizer"),
+					"xAxisDate" => __("Date","ithoughts_plugins_statizer"),
+					"events" => __("Events","ithoughts_plugins_statizer"),
+					"downloadSerie" => __("<b>{0}</b> downloads","ithoughts_plugins_statizer"),
+					"activeSerie" => __("<b>{0}</b> active installs","ithoughts_plugins_statizer"),
+					"eventVersion" => __("Release of v{0} of <b>{1}</b>","ithoughts_plugins_statizer"),
+					"eventDownloads" => __("More than {0} downloads of <b>{1}</b>","ithoughts_plugins_statizer"),
+					"eventActive" => __("More than {0} active installs of <b>{1}</b>","ithoughts_plugins_statizer"),
+				)
+			)
+		));
 	}
 	private function filterPluginData($pluginData, $details){
 		$ret = array();
@@ -132,9 +217,12 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		return $ret;
 	}
 	public function register_scripts_and_styles(){
-		wp_register_script('ithoughts_aliases', parent::$base_url . '/submodules/iThoughts-WordPress-Plugin-Toolbox/ithoughts_aliases.js', array('jquery'), null, true);
+		wp_register_script('ithoughts_aliases', parent::$base_url . "/submodules/iThoughts-WordPress-Plugin-Toolbox/js/ithoughts_aliases".parent::$minify.".js", array('jquery'), null, true);
 		wp_register_script('highcharts', parent::$base_url . '/ext/highcharts/js/highcharts.js', null, null, true);
-		wp_register_script('ithoughts_plugins_statizer-main', parent::$base_url . '/js/ithoughts_plugins_statizer.js', array('jquery', "ithoughts_aliases", "highcharts"), null, true);
+		wp_register_script('highstock', parent::$base_url . '/ext/highstock/js/highstock.js', /*/array("highcharts")/*/null/**/, null, true);
+		wp_register_script('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".js", array('jquery', "ithoughts_aliases", "highstock"), null, true);
+
+		wp_register_style('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".css" );
 	}
 
 	public static function get_instance(){
@@ -148,15 +236,15 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		$self = self::get_instance();
-		wp_schedule_event(time(), 'hourly', "ithoughts_plugin_statizer_cron", true);
-		wp_schedule_event(time(), 'daily', "ithoughts_plugin_statizer_cron", false);
+		wp_schedule_event(time(), 'hourly', "ithoughts_plugins_statizer_cron", true);
+		wp_schedule_event(time(), 'daily', "ithoughts_plugins_statizer_cron", false);
 	}
 	public static function deactivationHook(){
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		$self = self::get_instance();
-		wp_clear_scheduled_hook("ithoughts_plugin_statizer_hourly");
-		wp_clear_scheduled_hook("ithoughts_plugin_statizer_daily");
+		wp_clear_scheduled_hook("ithoughts_plugins_statizer_hourly");
+		wp_clear_scheduled_hook("ithoughts_plugins_statizer_daily");
 	}
 	public function refresh($hourly){
 		var_dump($hourly);
@@ -213,37 +301,40 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 					if(isset($pluginInfos["name"]))
 						$infos["name"] = $pluginInfos["name"];
 					if(isset($pluginInfos["downloaded"]) && $pluginInfos["downloaded"] != NULL){
-						$powTenDLs = intval(log10($pluginInfos["downloaded"]));
+						$powTenDLs = intval(log10(intval($pluginInfos["downloaded"])));
 						if(intval(log10($infos["downloaded"])) < $powTenDLs){
-							$infos["events"]["downloads"][$dateT] = pow(10, $powTenDLs);
+							$infos["events"]["downloads"][$dateT] = intval(pow(10, $powTenDLs));
 						}
 					}
 					if(isset($pluginInfos["downloaded"]))
-						$infos["downloaded"] = $pluginInfos["downloaded"];
+						$infos["downloaded"] = intval($pluginInfos["downloaded"]);
 					if(isset($pluginInfos["creationDate"]))
 						$infos["creationDate"] = $pluginInfos["creationDate"];
-					if(isset($pluginInfos["active_installs"]) && $pluginInfos["active_installs"] != NULL){
-						$infos["active"][$dateY] = $pluginInfos["active_installs"];
-						$powTenACs = intval(log10($pluginInfos["active_installs"]));
+					if(isset($pluginInfos["active_installs"]) && $pluginInfos["active_installs"] != NULL){ 
+						$active = intval($pluginInfos["active_installs"]);
+						if($active == 0)
+							$active = 1;
+						$infos["active"][$dateY] = $active;
+						$powTenACs = intval(log10($active));
 						if(isset($infos["active"][$dateYY]) && intval(log10($infos["active"][$dateYY])) < $powTenACs){
-							$infos["events"]["active"][$dateY] = pow(10, $powTenACs);
+							$infos["events"]["active"][$dateY] = intval(pow(10, $powTenACs));
 						}
 					}
 					if(isset($pluginInfos["version"]) && $infos["version"] != $pluginInfos["version"]){
 						$infos["version"] = $pluginInfos["version"];
-						$infos["events"]["versions"][$dateT] = $pluginInfos["version"];
+						$infos["events"]["versions"][$dateY] = $pluginInfos["version"];
 					}
 
 					if($pluginInfos["name"] != NULL){
 						foreach($downloadsLastsDays as $date => $downloads){
-							$infos["downloads"][$date] = $downloads;
+							$infos["downloads"][$dateT] = intval($downloads);
 						}
 					}
 
 					if(is_array($downloadsToday)){
 						$downloadsTodayKeys = array_keys($downloadsToday);
 						if(count($downloadsTodayKeys) > 0)
-							$infos["downloadsToday"] = $downloadsToday[$downloadsTodayKeys[0]];
+							$infos["downloadsToday"] = intval($downloadsToday[$downloadsTodayKeys[0]]);
 					}
 
 					$this->setInfos($plugin, $infos);
@@ -278,6 +369,12 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 			),
 			$infos == null ? array() : $infos
 		);
+		$infos["downloaded"] = intval($infos["downloaded"]);
+		$infos["downloadsToday"] = intval($infos["downloadsToday"]);
+		foreach($infos["downloads"] as $date => $value)
+			$infos["downloads"][$date] = intval($value);
+		foreach($infos["active"] as $date => $value)
+			$infos["active"][$date] = intval($value);
 		return $infos;
 	}
 	private function getPluginInfos($plugin_name){
@@ -338,5 +435,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 	}
 	private function setInfos($plugin_name, $data){
 		file_put_contents($this->plugin_dir."/$plugin_name.json", json_encode($data));
+	}
+	public function localisation(){
+		load_plugin_textdomain( 'ithoughts_plugins_statizer', false, plugin_basename( dirname( __FILE__ ) )."/../lang" );
 	}
 }

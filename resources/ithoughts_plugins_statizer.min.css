@@ -1,0 +1,1 @@
+[id^="plugins_data-"] .customLegend .item,[id^="plugins_data-"] .customLegend .item-group{cursor:pointer}[id^="plugins_data-"] .customLegend .item[data-active="false"],[id^="plugins_data-"] .customLegend .item-group[data-active="false"]{background:#fafafa}[id^="plugins_data-"] .customLegend{overflow:auto}
