@@ -9,3 +9,6 @@
 [id^="plugins_data-"] .customLegend{
 	overflow: auto;
 }
+.highcharts-container,.highcharts-container> svg{
+    overflow: visible!important;
+}

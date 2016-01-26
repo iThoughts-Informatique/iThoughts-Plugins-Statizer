@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: iThoughts Plugins Statizer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: Mon Jan 25 2016 01:16:49 GMT-1000 (TAHT)\n"
-"PO-Revision-Date: Mon Jan 25 2016 01:33:58 GMT-1000 (TAHT)\n"
+"PO-Revision-Date: Mon Jan 25 2016 21:37:01 GMT-1000 (TAHT)\n"
 "Last-Translator: admin <agermain@gerkindevelopment.net>\n"
 "Language-Team: \n"
 "Language: French (France)\n"
@@ -22,17 +22,60 @@ msgstr ""
 "X-Loco-Target-Locale: fr_FR\n"
 "X-Generator: Loco - https://localise.biz/"
 
-#: ../class/ithoughts_plugins_statizer.class.php:177
+#: ../class/ithoughts_plugins_statizer.class.php:219
 #, php-format
-msgctxt "Full date"
-msgid "%a, %b %e, %Y"
-msgstr "%a %e %b %Y"
+msgctxt "Month based date"
+msgid "%b '%y"
+msgstr "%b %y"
 
-#: ../class/ithoughts_plugins_statizer.class.php:178
-#, php-format
-msgctxt "Week date"
-msgid "%e. %b"
-msgstr "%e, %b"
+#: ../class/ithoughts_plugins_statizer-widget.class.php:7
+msgid "Stats for your plugins"
+msgstr "Statistiques pour vos plugins"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:10
+msgid "Display a widget with stats of a plugin"
+msgstr "Affiche un widget avec les stats d'un plugin"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:44
+msgid "Plugin stat"
+msgstr "Stats du plugin"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:52
+msgid "( None )"
+msgstr "( Aucun )"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:65
+msgid "Title"
+msgstr "Titre"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:73 ..
+#: /class/ithoughts_plugins_statizer-admin.class.php:66
+msgid "Plugins monitored"
+msgstr "Plugins suivis"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:83
+msgid "Or post-meta"
+msgstr "Ou post-meta"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:94
+msgid "Days displayed"
+msgstr "Jours affichés"
+
+#: ../class/ithoughts_plugins_statizer-widget.class.php:102
+msgid "Load via Ajax"
+msgstr "Charger via Ajax"
+
+#: ../class/ithoughts_plugins_statizer-admin.class.php:58
+msgid "Options"
+msgstr "Options"
+
+#: ../class/ithoughts_plugins_statizer-admin.class.php:75
+msgid "Update options"
+msgstr "Mettre à jour les options"
+
+#: ../class/ithoughts_plugins_statizer-admin.class.php:101
+msgid "Options updated"
+msgstr "Options mises à jour"
 
 #. Name of the plugin
 msgid "iThoughts Plugins Statizer"
@@ -42,123 +85,135 @@ msgstr "iThoughts Plugins Statizer"
 msgid "Gerkin"
 msgstr "Gerkin"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:217
+#, php-format
+msgctxt "Full date"
+msgid "%a, %b %e, %Y"
+msgstr "%a %e %b %Y"
+
+#: ../class/ithoughts_plugins_statizer.class.php:218
+#, php-format
+msgctxt "Week date"
+msgid "%e. %b"
+msgstr "%e, %b"
+
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "January"
 msgstr "Janvier"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "February"
 msgstr "Février"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "March"
 msgstr "Mars"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "April"
 msgstr "Avril"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "May"
 msgstr "Mai"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "June"
 msgstr "Juin"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "July"
 msgstr "Juillet"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "August"
 msgstr "Août"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "September"
 msgstr "Septembre"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "October"
 msgstr "Octobre"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "November"
 msgstr "Novembre"
 
-#: ../class/ithoughts_plugins_statizer.class.php:181
+#: ../class/ithoughts_plugins_statizer.class.php:222
 msgid "December"
 msgstr "Décembre"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Sunday"
 msgstr "Dimanche"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Monday"
 msgstr "Lundi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Tuesday"
 msgstr "Mardi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Wednesday"
 msgstr "Mercredi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Thursday"
 msgstr "Jeudi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Friday"
 msgstr "Vendredi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:182
+#: ../class/ithoughts_plugins_statizer.class.php:223
 msgid "Saturday"
 msgstr "Samedi"
 
-#: ../class/ithoughts_plugins_statizer.class.php:185
+#: ../class/ithoughts_plugins_statizer.class.php:226
 msgid "Active"
 msgstr "Actif"
 
-#: ../class/ithoughts_plugins_statizer.class.php:186
+#: ../class/ithoughts_plugins_statizer.class.php:227
 msgid "Downloads"
 msgstr "Téléchargements"
 
-#: ../class/ithoughts_plugins_statizer.class.php:187 ..
-#: /class/ithoughts_plugins_statizer.class.php:191
+#: ../class/ithoughts_plugins_statizer.class.php:228 ..
+#: /class/ithoughts_plugins_statizer.class.php:232
 msgid "Events"
 msgstr "Evénements"
 
-#: ../class/ithoughts_plugins_statizer.class.php:188
+#: ../class/ithoughts_plugins_statizer.class.php:229
 msgid "Downloads per day"
 msgstr "Téléchargements par jour"
 
-#: ../class/ithoughts_plugins_statizer.class.php:189
+#: ../class/ithoughts_plugins_statizer.class.php:230
 msgid "Active installs"
 msgstr "Installations actives"
 
-#: ../class/ithoughts_plugins_statizer.class.php:190
+#: ../class/ithoughts_plugins_statizer.class.php:231
 msgid "Date"
 msgstr "Date"
 
-#: ../class/ithoughts_plugins_statizer.class.php:192
+#: ../class/ithoughts_plugins_statizer.class.php:233
 msgid "<b>{0}</b> downloads"
 msgstr "Téléchargements de <b>{0}</b>"
 
-#: ../class/ithoughts_plugins_statizer.class.php:193
+#: ../class/ithoughts_plugins_statizer.class.php:234
 msgid "<b>{0}</b> active installs"
 msgstr "Installations actives de <b>{0}</b> "
 
-#: ../class/ithoughts_plugins_statizer.class.php:194
+#: ../class/ithoughts_plugins_statizer.class.php:235
 msgid "Release of v{0} of <b>{1}</b>"
 msgstr "Déploiement de la v{0} de <b>{1}</b>"
 
-#: ../class/ithoughts_plugins_statizer.class.php:195
+#: ../class/ithoughts_plugins_statizer.class.php:236
 msgid "More than {0} downloads of <b>{1}</b>"
 msgstr "Plus de {0} téléchargements de <b>{1}</b>"
 
-#: ../class/ithoughts_plugins_statizer.class.php:196
+#: ../class/ithoughts_plugins_statizer.class.php:237
 msgid "More than {0} active installs of <b>{1}</b>"
 msgstr "Plus de {0} installations actives de <b>{1}</b>"

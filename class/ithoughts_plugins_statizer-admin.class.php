@@ -2,8 +2,11 @@
 
 class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interface{
 	public function __construct(){
-		add_action( 'init',			array( &$this,	'register_scripts_and_styles')	);
+		add_action( 'admin_init',			array( &$this,	'register_scripts_and_styles')	);
 		add_action( "admin_menu",	array(&$this, "menuPages"));
+		add_action( "admin_enqueue_scripts", array( &$this, "enqueue_scripts"));
+
+		add_action( "wp_ajax_ithoughts_plugins_statizer_update_options", array( &$this, "update_options"));
 	}
 
 	public function menuPages(){
@@ -13,7 +16,7 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 	public function register_scripts_and_styles(){
 		wp_register_script(
 			'ithoughts-simple-ajax',
-			parent::$base_url . '/submodules/iThoughts-WordPress-Plugin-Toolbox/js/simple-ajax-form.min.js',
+			parent::$base_url . '/submodules/iThoughts-WordPress-Plugin-Toolbox/js/simple-ajax-form'.parent::$minify.'.js',
 			array('jquery-form',"ithoughts_aliases"),
 			null
 		);
@@ -26,7 +29,7 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 		);
 		wp_register_script(
 			'ithoughts-plugins-statizer-options',
-			parent::$base_url . '/resources/ithoughts_plugins_statizer-options.js',
+			parent::$base_url . '/resources/ithoughts_plugins_statizer-options'.parent::$minify.'.js',
 			array("ithoughts_aliases",'ithoughts-plugins-statizer-taggle',"ithoughts-simple-ajax"),
 			null
 		);
@@ -38,12 +41,13 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 		);
 	}
 
+	public function enqueue_scripts(){
+	}
 	public function options(){
 		wp_enqueue_script('ithoughts-plugins-statizer-options');
 		wp_enqueue_style('ithoughts-plugins-statizer-taggle');
-
 		$ajax         = admin_url( 'admin-ajax.php' );
-		$pluginsMonitored = "";
+		$pluginsMonitored = implode(", ", parent::$options["plugins"]);
 ?>
 <div class="wrap">
 	<div id="ithoughts-plugins-statizer-options" class="meta-box meta-box-50 metabox-holder">
@@ -62,7 +66,7 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 										<label for="pluginsMonitored"><?php _e("Plugins monitored","ithoughts_plugins_statizer"); ?></label>
 									</td>
 									<td>
-										<div id="pluginsMonitored" class="taggle" value="<?php echo $pluginsMonitored; ?>"/>
+										<div id="pluginsMonitored" class="taggle" data-values="<?php echo $pluginsMonitored; ?>"/>
 									</td>
 								</tr>
 								<tr>
@@ -81,5 +85,26 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 	</div>
 </div>
 <?php
+	}
+
+	public function update_options(){
+		if(isset($_POST) && $data = $_POST){
+			$opts = array(
+				"plugins" => array()
+			);
+			if(isset($data["taggles"]))
+				$opts["plugins"] = $data["taggles"];
+
+			
+			update_option( 'ithoughts_plugins_statizer', $opts );
+			parent::$options = $opts;
+			$outtxt = ('<p>' . __('Options updated', 'ithoughts_plugins_statizer') . '</p>') ;
+			die( json_encode(array(
+				"text" =>$outtxt,
+				"valid" => true
+			)));
+		} else {
+			wp_die();
+		}
 	}
 }

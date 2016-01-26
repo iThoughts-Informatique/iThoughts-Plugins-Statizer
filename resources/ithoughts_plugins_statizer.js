@@ -11,16 +11,24 @@ $(function(){
 	Highcharts.setOptions({
 		lang: ithoughts_plugins_statizer.lang.highcharts
 	});
+	console.log(ithoughts_plugins_statizer_plugins);
 	$('[id^="plugins_data-"][data-ajaxed="true"]').each(function(){
 		var plugins = decodeJSONAttr(this.getAttribute("data-plugins"));
 		var details = decodeJSONAttr(this.getAttribute("data-details"));
 		var chartId = this.id;
+		var maxDays = this.getAttribute("data-maxDays");
+		var theme = this.getAttribute("data-theme");
+		var data = {
+			plugins: plugins,
+			details: details,
+			chartId: chartId
+		};
+		if(parseInt(maxDays) > 0)
+			data["maxDays"] = parseInt(maxDays);
+		if(theme && theme.length > 0)
+			data["theme"] = theme;
 		$.post(ithoughts_plugins_statizer.ajax,{
-			action: "ithoughts_plugins_statizer-get_chart_ajax", data: {
-				plugins: plugins,
-				details: details,
-				chartId: chartId
-			}
+			action: "ithoughts_plugins_statizer-get_chart_ajax", data: data
 		}, function(out){
 			if(out.success){
 				ithoughts_plugins_statizer_plugins.push(out.data);
@@ -28,7 +36,7 @@ $(function(){
 			} else {
 				console.error("Error while getting chart via Ajax", out);
 			}
-		})
+		});
 	});
 
 
@@ -91,15 +99,19 @@ $(function(){
 			chart.inited = true;
 
 			var minDate = null;
-			var maxDays = 100;
+			var maxDays = chart.maxDays;
 			var nowTimestamp = (new Date()).getTime();
 			var dtt = 1000 * 60 * 60 * 24;
 			for(var plugin in chart.plugins){
 				var pluginCreation = (new Date(chart.plugins[plugin].creationDate)).getTime();
 				if(isNaN(pluginCreation))
 					pluginCreation = nowTimestamp;
-				var downloadsLast = nowTimestamp - (Object.keys(chart.plugins[plugin].downloads).length * dtt);
-				var activeLast = nowTimestamp - (Object.keys(chart.plugins[plugin].active).length * dtt);
+				var downloadsLast = nowTimestamp;
+				if(chart.plugins[plugin].downloads)
+					downloadsLast = nowTimestamp - (Object.keys(chart.plugins[plugin].downloads).length * dtt);
+				var activeLast = nowTimestamp;
+				if(chart.plugins[plugin].active)
+					activeLast = nowTimestamp - (Object.keys(chart.plugins[plugin].active).length * dtt);
 				var dateTimed = Math.max(Math.min(pluginCreation, downloadsLast, activeLast), nowTimestamp - (maxDays * dtt));
 				dateTimed = roundDateToDay(new Date(dateTimed));
 				if(minDate == null || minDate > dateTimed)
@@ -140,7 +152,7 @@ $(function(){
 							hour: 'hour %H:%M',
 							day: 'day %e. %b',
 							week: ithoughts_plugins_statizer.lang.dateformat.week,
-							month: 'month %b \'%y',
+							month: ithoughts_plugins_statizer.lang.dateformat.month,
 							year: 'year %Y'
 						}
 					},
@@ -233,24 +245,69 @@ $(function(){
 				// Series
 				{
 					var dataArray = [];
+					var zones = [];/*
+					if(chart.plugins[plugin].downloadsToday){
+						zones.push({
+							value: 0,
+							color: "#000000"
+						});
+					}*/
 					for(var o in chart.plugins[plugin].downloads) {
 						dataArray.push(chart.plugins[plugin].downloads[o]);
 					}
+					var keys = Object.keys(chart.plugins[plugin].downloads)
+					zones.push({
+						value:roundDateToDay(new Date(keys[keys.length - 1])).getTime() - dtt,
+						dashStyle: "solid"
+					});
+					if(typeof chart.plugins[plugin].downloadsToday != "undefined"){
+						zones.push({
+							value: roundDateToDay(new Date()).getTime() + dtt,
+							dashStyle: "shortdot"
+						});
+						dataArray.push(chart.plugins[plugin].downloadsToday);
+					}
 					var serieId = generateId(name, "downloads");
-					chartOptions["series"].push({
+					var serieDl = {
 						type: "spline",
 						yAxis: 0,
 						name: ithoughts_plugins_statizer.lang.labels["downloadSerie"].format(name),
 						data: dataArray,
-						pointStart: roundDateToDay(new Date()).getTime() - (dataArray.length * dtt),
+						pointStart: roundDateToDay(new Date()).getTime() - ((dataArray.length - (chart.plugins[plugin].downloadsToday ? 1 : 0)) * dtt),
 						pointInterval: dtt,
 						id: serieId,
-						color: "#" + chart.colors.series[pluginIndex][0]
-					});
+						color: "#" + chart.colors.series[pluginIndex][0],
+					};
+					if(typeof chart.plugins[plugin].downloadsToday != "undefined"){
+						serieDl = $.extend(serieDl, {
+							zoneAxis: 'x',
+							zones: zones
+						});
+					}
+					chartOptions["series"].push(serieDl);
 					chart["seriesTable"][window.encodeURIComponent(name)]["downloads"] = {
 						id: serieId,
 						name: name
 					};
+					/*if(chart.plugins[plugin].downloadsToday){
+						var obj = {};
+						obj[roundDateToDay(new Date()).getTime()] = chart.plugins[plugin].downloadsToday;
+						console.log(obj);
+						chartOptions["series"].push({
+							type: "spline",
+							yAxis: 0,
+							name: ithoughts_plugins_statizer.lang.labels["downloadSerie"].format(name),
+							data: [{
+								x: roundDateToDay(new Date()).getTime() - 100000000,
+								y: chart.plugins[plugin].downloadsToday
+							},{
+								x: roundDateToDay(new Date()).getTime(),
+								y: chart.plugins[plugin].downloadsToday
+							}],
+							color: "#" + chart.colors.series[pluginIndex][0],
+							linkedTo: serieId
+						});
+					}*/
 
 
 					var dataArray = [];
@@ -286,67 +343,75 @@ $(function(){
 				{
 					var opacity = 0.5;
 
-					var color = hexToRgb(chart.colors.series[pluginIndex][2]);
-					var versions = {
-						type:"flags",
-						xAxis: 1,
-						fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
-						data: [],
-						name: name,
-						shape: "flag",
-						zIndex: 10 + pluginIndex + 2
-					}
-					for(var date in chart.plugins[plugin].events.versions){
-						var version = chart.plugins[plugin].events.versions[date];
-						versions.data.push({
-							x: roundDateToDay(new Date(date)).getTime(),
-							title: "v" + version,
-							text: ithoughts_plugins_statizer.lang.labels["eventVersion"].format(version, name)
-						});
-					}
-					chartOptions["series"].push(versions);
+					if(chart.plugins[plugin].events){
+						if(chart.plugins[plugin].events.versions){
+							var color = hexToRgb(chart.colors.series[pluginIndex][2]);
+							var versions = {
+								type:"flags",
+								xAxis: 1,
+								fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
+								data: [],
+								name: name,
+								shape: "flag",
+								zIndex: 10 + pluginIndex + 2
+							}
+							for(var date in chart.plugins[plugin].events.versions){
+								var version = chart.plugins[plugin].events.versions[date];
+								versions.data.push({
+									x: roundDateToDay(new Date(date)).getTime(),
+									title: "v" + version,
+									text: ithoughts_plugins_statizer.lang.labels["eventVersion"].format(version, name)
+								});
+							}
+							chartOptions["series"].push(versions);
+						}
 
-					var color = hexToRgb(chart.colors.series[pluginIndex][3]);
-					var downloads = {
-						yAxis: 0,
-						type:"flags",
-						onSeries: generateId(name, "downloads"),
-						fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
-						data: [],
-						name: name,
-						shape: "circlepin",
-						zIndex: 10 + pluginIndex + 0
-					}
-					for(var date in chart.plugins[plugin].events.downloads){
-						var download = chart.plugins[plugin].events.downloads[date];
-						downloads.data.push({
-							x: roundDateToDay(new Date(date)).getTime(),
-							title: download,
-							text: ithoughts_plugins_statizer.lang.labels["eventDownloads"].format(download, name)
-						});
-					}
-					chartOptions["series"].push(downloads);
+						if(chart.plugins[plugin].events.downloads){
+							var color = hexToRgb(chart.colors.series[pluginIndex][3]);
+							var downloads = {
+								yAxis: 0,
+								type:"flags",
+								onSeries: generateId(name, "downloads"),
+								fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
+								data: [],
+								name: name,
+								shape: "circlepin",
+								zIndex: 10 + pluginIndex + 0
+							}
+							for(var date in chart.plugins[plugin].events.downloads){
+								var download = chart.plugins[plugin].events.downloads[date];
+								downloads.data.push({
+									x: roundDateToDay(new Date(date)).getTime(),
+									title: download,
+									text: ithoughts_plugins_statizer.lang.labels["eventDownloads"].format(download, name)
+								});
+							}
+							chartOptions["series"].push(downloads);
+						}
 
-					var color = hexToRgb(chart.colors.series[pluginIndex][4]);
-					var actives = {
-						yAxis: 1,
-						type:"flags",
-						onSeries: generateId(name, "active"),
-						fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
-						data: [],
-						name: name,
-						shape: "squarepin",
-						zIndex: 10 + pluginIndex + 1
+						if(chart.plugins[plugin].events.active){
+							var color = hexToRgb(chart.colors.series[pluginIndex][4]);
+							var actives = {
+								yAxis: 1,
+								type:"flags",
+								onSeries: generateId(name, "active"),
+								fillColor: 'rgba(' + color.r + ',' + color.g + ',' + color.b + ',' + opacity + ')',
+								data: [],
+								name: name,
+								shape: "squarepin",
+								zIndex: 10 + pluginIndex + 1
+							}
+							for(var date in chart.plugins[plugin].events.active){
+								var active = chart.plugins[plugin].events.active[date];
+								actives.data.push({
+									x: roundDateToDay(new Date(date)).getTime(),
+									title: active,
+									text: ithoughts_plugins_statizer.lang.labels["eventActive"].format(active, name)
+								});
+							}
+							chartOptions["series"].push(actives);
+						}
 					}
-					for(var date in chart.plugins[plugin].events.actives){
-						var active = chart.plugins[plugin].events.actives[date];
-						actives.data.push({
-							x: roundDateToDay(new Date(date)).getTime(),
-							title: active,
-							text: ithoughts_plugins_statizer.lang.labels["eventActive"].format(active, name)
-						});
-					}
-					chartOptions["series"].push(actives);
 				}
 			}
 
@@ -388,8 +453,10 @@ $(function(){
 						// Organize for legend
 						var serieId = data.userOptions.id;
 						if(!serieId){
-							if(!strings[data.userOptions.name]["events"]){
-								strings[data.userOptions.name]["events"] = []
+							if(strings[data.userOptions.name]){
+								if(!strings[data.userOptions.name]["events"]){
+									strings[data.userOptions.name]["events"] = []
+								}
 							}
 							if(data.options.fillColor){
 								var color = data.options.fillColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*(\d*.?\d*)\)/);
@@ -399,15 +466,19 @@ $(function(){
 									b: parseInt(color[3]),
 									a: parseFloat(color[4]),
 								};
-								strings[data.userOptions.name]["events"].push({
-									index: j,
-									color: 'rgb(' + color.r + ',' + color.g + ',' + color.b + ')'
-								});
+								if(strings[data.userOptions.name] && strings[data.userOptions.name]["events"]){
+									strings[data.userOptions.name]["events"].push({
+										index: j,
+										color: 'rgb(' + color.r + ',' + color.g + ',' + color.b + ')'
+									});
+								}
 							} else {
-								strings[data.userOptions.name]["events"].push({
-									index: j,
-									color: data.color
-								});
+								if(strings[data.userOptions.name] && strings[data.userOptions.name]["events"]){
+									strings[data.userOptions.name]["events"].push({
+										index: j,
+										color: data.color
+									});
+								}
 							}
 						} else {
 							var serieInfos = serieId.split("___");
