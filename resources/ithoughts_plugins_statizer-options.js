@@ -1,4 +1,4 @@
-$doc.ready(function(){
+$d.ready(function(){
 	window.taggles = {};
 	setInterval(function(){
 		$(".taggle").each(function(){

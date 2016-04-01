@@ -18,26 +18,26 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 			'ithoughts-simple-ajax',
 			parent::$base_url . '/submodules/iThoughts-WordPress-Plugin-Toolbox/js/simple-ajax-form'.parent::$minify.'.js',
 			array('jquery-form',"ithoughts_aliases"),
-			null
+			"1.0"
 		);
 
 		wp_register_script(
 			'ithoughts-plugins-statizer-taggle',
 			parent::$base_url . '/ext/taggle/src/taggle.js',
 			array("ithoughts_aliases"),
-			null
+			"1.0"
 		);
 		wp_register_script(
 			'ithoughts-plugins-statizer-options',
 			parent::$base_url . '/resources/ithoughts_plugins_statizer-options'.parent::$minify.'.js',
 			array("ithoughts_aliases",'ithoughts-plugins-statizer-taggle',"ithoughts-simple-ajax"),
-			null
+			"1.0"
 		);
 
 		wp_register_style(
 			"ithoughts-plugins-statizer-taggle",
 			parent::$base_url . '/ext/taggle/assets/css/taggle.css',
-			false
+			"1.0"
 		);
 	}
 
@@ -70,6 +70,14 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 									</td>
 								</tr>
 								<tr>
+									<td>
+										<label for="mail_update"><?php _e("Mail site admin on update","ithoughts_plugins_statizer"); ?></label>
+									</td>
+									<td>
+										<input type="checkbox" id="mail_update" name="mail_update" value="enabled" <?php echo (parent::$options["mail_update"] ? "checked" : ""); ?> />
+									</td>
+								</tr>
+								<tr>
 									<td colspan="2">
 										<input autocomplete="off" type="hidden" name="action" value="ithoughts_plugins_statizer_update_options"/>
 										<button class="alignleft button-primary"><?php _e('Update options', 'ithoughts_plugins_statizer'); ?></button>
@@ -89,14 +97,16 @@ class ithoughts_plugins_statizer_admin extends ithoughts_plugins_statizer_interf
 
 	public function update_options(){
 		if(isset($_POST) && $data = $_POST){
-			$opts = array(
-				"plugins" => array()
-			);
+			$opts = parent::$options;
 			if(isset($data["taggles"]))
 				$opts["plugins"] = $data["taggles"];
+			if(isset($data["mail_update"]))
+				$opts["mail_update"] = $data["mail_update"] === "enabled";
+			else
+				$opts["mail_update"] = false;
 
 			
-			update_option( 'ithoughts_plugins_statizer', $opts );
+			update_site_option( 'ithoughts_plugins_statizer', $opts );
 			parent::$options = $opts;
 			$outtxt = ('<p>' . __('Options updated', 'ithoughts_plugins_statizer') . '</p>') ;
 			die( json_encode(array(

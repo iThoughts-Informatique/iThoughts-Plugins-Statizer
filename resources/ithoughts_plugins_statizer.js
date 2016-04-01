@@ -81,6 +81,8 @@ $(function(){
 				clearInterval(interval);
 				return;
 			} else {
+				data.pointAttr.hover.zIndex = 1000;
+				data.pointAttr.hover.zindex = 1000;
 				data.pointAttr.hover.fill = 'rgb(' + color.r + ',' + color.g + ',' + color.b + ')';
 				data.data.forEach(function(elem){
 					//console.log("Setting point", elem, color)
@@ -131,7 +133,8 @@ $(function(){
 					}
 				},
 				title: {
-					text: $container[0].getAttribute("data-title")
+					text: $container[0].getAttribute("data-title"),
+							margin: 45
 				},
 				legend: {
 					enabled: false
@@ -173,8 +176,32 @@ $(function(){
 						marker: {
 							enabled: false
 						},
+					},
+					line: {
+						marker: {
+							enabled: false
+						},
 					}
-				},
+				},/*
+				flagsGrouping : {
+					calculateFillColor : true,
+					selectGroupOnClick : true,
+					minSelectableDateRange : 14 * 24 * 60 * 60 * 1000, // 2 weeks;
+					groupings : [{
+						zoomTimeSpan :  2 * 365 * 24 * 60 * 60 * 1000, // when more then 2 years selected
+						groupTimeSpan :      60 * 24 * 60 * 60 * 1000  // group flags by 60 days
+					},{
+						zoomTimeSpan :      365 * 24 * 60 * 60 * 1000, // when from 2 to 1 years selected
+						groupTimeSpan :      30 * 24 * 60 * 60 * 1000  // group by 30 days
+					}, {
+						zoomTimeSpan :      182 * 24 * 60 * 60 * 1000, // when from 1 to half year selected
+						groupTimeSpan :      15 * 24 * 60 * 60 * 1000  // group flags by 15 days
+					}, {
+						zoomTimeSpan :       90 * 24 * 60 * 60 * 1000, // when from half year to 3 month selected
+						groupTimeSpan :       5 * 24 * 60 * 60 * 1000  // group by 5 days
+					}]
+				},*/
+
 				tooltip: {
 					formatter: function() {
 						if(this.point.text)
@@ -353,7 +380,8 @@ $(function(){
 								data: [],
 								name: name,
 								shape: "flag",
-								zIndex: 10 + pluginIndex + 2
+								zIndex: 10 + pluginIndex + 2,
+								stackDistance : 20,
 							}
 							for(var date in chart.plugins[plugin].events.versions){
 								var version = chart.plugins[plugin].events.versions[date];
@@ -432,7 +460,7 @@ $(function(){
 						series.push("events");
 				}
 				var $legend = $container.find(".customLegend");
-				var $table = $($.parseHTML("<table></table>"))
+				var $table = $($.parseHTML('<table style="min-width:100%"></table>'));
 				$legend.append($table);
 				{
 					var seriesHeading = "";

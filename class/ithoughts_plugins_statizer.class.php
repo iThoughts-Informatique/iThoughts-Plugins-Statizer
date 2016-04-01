@@ -125,7 +125,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		parent::$base_url		= plugins_url( '', dirname(__FILE__) );
 
 		$this->defaults = array(
-			"plugins" => array()
+			"plugins" => array(),
+			"mail_update" => true
 		);
 		parent::$options		= $this->initOptions();
 
@@ -137,7 +138,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 
 
 		add_action( 'init',								array( &$this,	'register_scripts_and_styles')	);
-		add_action( 'ithoughts_plugins_statizer_cron',	array( &$this,	'refresh')						);
+		add_action( 'ithoughts_plugins_statizer_cron_hourly',	array( &$this,	'refresh_h')			);
+		add_action( 'ithoughts_plugins_statizer_cron_daily',	array( &$this,	'refresh_d')			);
 		add_action( 'wp_enqueue_scripts',						array( &$this,	'wp_enqueue_scripts')			);
 		add_action( 'wp_ajax_ithoughts_plugins_statizer-get_chart_ajax',			array(&$this, 'get_chart_ajax') );
 		add_action( 'wp_ajax_nopriv_ithoughts_plugins_statizer-get_chart_ajax',	array(&$this, 'get_chart_ajax') );
@@ -159,8 +161,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 	}
 	public function updateShortcode(){
 		/**/
-		do_action("ithoughts_plugins_statizer_cron", true);
-		do_action("ithoughts_plugins_statizer_cron", false);
+		do_action("ithoughts_plugins_statizer_cron_hourly");
+		do_action("ithoughts_plugins_statizer_cron_daily");
 		/**/
 	}
 	public function get_chart_ajax(){
@@ -170,7 +172,7 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 			$chartId = $post["chartId"];
 			$maxDays = isset($post["maxDays"]) && intval($post["maxDays"]) > 0 ? intval($post["maxDays"]) : NULL;
 			$theme = isset($post["theme"]) ? $post["theme"] : "various";
-				wp_send_json_success(apply_filters("ithoughts_plugins_statizer-crunch_data", $plugins, $details, $chartId, $theme, $maxDays));
+			wp_send_json_success(apply_filters("ithoughts_plugins_statizer-crunch_data", $plugins, $details, $chartId, $theme, $maxDays));
 		}
 		wp_die();
 	}
@@ -312,12 +314,13 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		return $ret;
 	}
 	public function register_scripts_and_styles(){
-		wp_register_script('ithoughts_aliases', parent::$base_url . "/submodules/iThoughts-WordPress-Plugin-Toolbox/js/ithoughts_aliases".parent::$minify.".js", array('jquery'), null, false);
-		wp_register_script('highcharts', parent::$base_url . '/ext/highcharts/js/highcharts.js', null, null, true);
-		wp_register_script('highstock', parent::$base_url . '/ext/highstock/js/highstock.js', /*/array("highcharts")/*/null/**/, null, true);
-		wp_register_script('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".js", array('jquery', "ithoughts_aliases", "highstock"), null, true);
+		wp_register_script('ithoughts_aliases', parent::$base_url . "/submodules/iThoughts-WordPress-Plugin-Toolbox/js/ithoughts_aliases".parent::$minify.".js", array('jquery'), "1.0", false);
+		wp_register_script('highcharts', parent::$base_url . '/ext/highcharts/js/highcharts.js', null, "1.0", true);
+		wp_register_script('highstock', parent::$base_url . '/ext/highstock/js/highstock.js', /*/array("highcharts")/*/null/**/, "1.0", true);
+		wp_register_script('highcharts-flags-grouping', parent::$base_url . '/ext/highcharts-flags-grouping.js', array("highstock"), "1.0", true);
+		wp_register_script('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".js", array('jquery', "ithoughts_aliases", "highstock", "highcharts-flags-grouping"), "1.0", true);
 
-		wp_register_style('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".css" );
+		wp_register_style('ithoughts_plugins_statizer-main', parent::$base_url . "/resources/ithoughts_plugins_statizer".parent::$minify.".css", null, "1.0" );
 	}
 
 	public static function get_instance(){
@@ -336,7 +339,7 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		return parent::$options;
 	}
 	private function initOptions(){
-		$opts = array_merge($this->getOptions(true), get_option( parent::$plugin_key, $this->getOptions(true) ));
+		$opts = array_merge($this->getOptions(true), get_site_option( parent::$plugin_key, $this->getOptions(true), true ));
 		return $opts;
 	}
 
@@ -346,8 +349,8 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		$self = self::get_instance();
-		wp_schedule_event(time(), 'hourly', "ithoughts_plugins_statizer_cron", true);
-		wp_schedule_event(time(), 'daily', "ithoughts_plugins_statizer_cron", false);
+		wp_schedule_event(time(), 'hourly', "ithoughts_plugins_statizer_cron_hourly");
+		wp_schedule_event(time(), 'daily', "ithoughts_plugins_statizer_cron_daily");
 	}
 	public static function deactivationHook(){
 		if ( ! current_user_can( 'activate_plugins' ) )
@@ -356,7 +359,13 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 		wp_clear_scheduled_hook("ithoughts_plugins_statizer_hourly");
 		wp_clear_scheduled_hook("ithoughts_plugins_statizer_daily");
 	}
-	public function refresh($hourly){
+	public function refresh_h(){
+		$this->refresh(true);
+	}
+	public function refresh_d(){
+		$this->refresh(false);
+	}
+	private function refresh($hourly){
 		var_dump($hourly);
 		if($hourly){
 			foreach(parent::$options["plugins"] as $plugin){
@@ -455,6 +464,10 @@ class ithoughts_plugins_statizer extends ithoughts_plugins_statizer_interface{
 			} catch(Exception $e){
 				var_dump($e);
 			}
+		}
+		if(parent::$options["mail_update"]){
+			echo "<p>Mailed ".get_bloginfo("admin_email")." about updated plugins.</p>";
+			wp_mail(get_bloginfo("admin_email"), "Stats updated!", "The stats for plugins ".implode(", ", parent::$options["plugins"])." were updated.");
 		}
 	}
 	private function getInfos($plugin_name){

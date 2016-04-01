@@ -10,11 +10,11 @@ Text Domain: ithoughts_plugins_statizer
 Domain Path: /lang
 */
 require_once( dirname(__FILE__) . '/class/ithoughts_plugins_statizer.class.php' );
-new ithoughts_plugins_statizer( dirname(__FILE__) );
+$ithoughts_plugins_statizer = new ithoughts_plugins_statizer( dirname(__FILE__) );
 if(is_admin()){
 	require_once( dirname(__FILE__) . '/class/ithoughts_plugins_statizer-admin.class.php' );
 	new ithoughts_plugins_statizer_admin();
 }
 
-register_activation_hook( __FILE__, array( 'ithoughts_plugins_statizer', 'activationHook' ) );
-register_deactivation_hook( __FILE__, array( 'ithoughts_plugins_statizer', 'deactivationHook' ) );
+register_activation_hook( __FILE__, array( "ithoughts_plugins_statizer", 'activationHook' ) );
+register_deactivation_hook( __FILE__, array( "ithoughts_plugins_statizer", 'deactivationHook' ) );
